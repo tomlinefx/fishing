@@ -1,22 +1,20 @@
-// S2 登録画面（WF-1）。スケルトン段階: 4項目の入力と保存、検証文言、保存中の無効化、保存失敗の表示。
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+// S2 登録画面（WF-1）: 写真必須、項目直下の検証文言、保存中の無効化、保存失敗の保持、破棄確認、場所の候補。
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { FieldErrors } from '../log/validation';
 import { messages } from '../messages';
 import { useCatchLog } from './CatchLogContext';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ErrorBanner } from './ErrorBanner';
 import { LabeledInput } from './LabeledInput';
+import { PhotoPicker } from './PhotoPicker';
 import { ScreenHeader } from './ScreenHeader';
+import { SuggestionList } from './SuggestionList';
 import { colors, MIN_TAP_SIZE, spacing } from './theme';
 
 type Props = {
   readonly onSaved: () => void;
   readonly onCancel: () => void;
-  /**
-   * スケルトン限定: 写真の添付を実装するまでの間、あらかじめ用意した写真の参照を渡す。
-   * Step 10（PhotoPicker 実装）で削除する。
-   */
-  readonly initialPhotoUri?: string | null;
 };
 
 type Fields = {
@@ -28,17 +26,22 @@ type Fields = {
 
 const EMPTY_FIELDS: Fields = { species: '', sizeCm: '', weightG: '', placeName: '' };
 
-export function CatchFormScreen({ onSaved, onCancel, initialPhotoUri = null }: Props) {
+export function CatchFormScreen({ onSaved, onCancel }: Props) {
   const log = useCatchLog();
   const [fields, setFields] = useState<Fields>(EMPTY_FIELDS);
-  const [photoUri] = useState<string | null>(initialPhotoUri);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDiscardDialogVisible, setDiscardDialogVisible] = useState(false);
+  const [suggestions, setSuggestions] = useState<readonly string[]>([]);
+  const [isPlaceFocused, setPlaceFocused] = useState(false);
+  const suggestionRequest = useRef(0);
 
-  function updateField(name: keyof Fields, value: string) {
-    setFields((current) => ({ ...current, [name]: value }));
-    // 項目を修正したらその項目の文言と保存失敗の文言を消す（S2 の状態遷移）
+  const isDirty =
+    photoUri !== null || Object.values(fields).some((value) => value.trim().length > 0);
+
+  function clearFieldError(name: keyof FieldErrors) {
     setErrors((current) => {
       if (!(name in current)) {
         return current;
@@ -49,6 +52,65 @@ export function CatchFormScreen({ onSaved, onCancel, initialPhotoUri = null }: P
     });
     setSaveError(null);
   }
+
+  function updateField(name: keyof Fields, value: string) {
+    setFields((current) => ({ ...current, [name]: value }));
+    clearFieldError(name);
+  }
+
+  function selectPhoto(uri: string) {
+    setPhotoUri(uri);
+    clearFieldError('photo');
+  }
+
+  // 場所の候補（BR6.1）: 入力中に問い合わせ、古い応答は捨てる
+  const loadSuggestions = useCallback(
+    async (query: string) => {
+      suggestionRequest.current += 1;
+      const requestId = suggestionRequest.current;
+      const result = await log.suggestPlaces(query);
+      if (requestId === suggestionRequest.current) {
+        setSuggestions(result);
+      }
+    },
+    [log],
+  );
+
+  function updatePlace(value: string) {
+    updateField('placeName', value);
+    void loadSuggestions(value);
+  }
+
+  function focusPlace() {
+    setPlaceFocused(true);
+    void loadSuggestions(fields.placeName);
+  }
+
+  function selectSuggestion(value: string) {
+    updateField('placeName', value);
+    setPlaceFocused(false);
+    setSuggestions([]);
+  }
+
+  // 戻る（BR7.1）: 入力または写真があれば破棄の確認を出す
+  const requestClose = useCallback(() => {
+    if (isSaving) {
+      return;
+    }
+    if (isDirty) {
+      setDiscardDialogVisible(true);
+      return;
+    }
+    onCancel();
+  }, [isDirty, isSaving, onCancel]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      requestClose();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [requestClose]);
 
   async function save() {
     if (isSaving) {
@@ -66,12 +128,16 @@ export function CatchFormScreen({ onSaved, onCancel, initialPhotoUri = null }: P
       setErrors(result.errors);
       return;
     }
-    setSaveError(result.reason); // BR4.1: 入力は保持したまま
+    setSaveError(result.reason); // BR4.1: 入力と写真は保持したまま
   }
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title={messages.form.title} onBack={onCancel} backTestID="catch-form-back" />
+      <ScreenHeader
+        title={messages.form.title}
+        onBack={requestClose}
+        backTestID="catch-form-back"
+      />
       {saveError !== null ? (
         <ErrorBanner message={saveError} testID="catch-form-save-error" />
       ) : null}
@@ -80,6 +146,12 @@ export function CatchFormScreen({ onSaved, onCancel, initialPhotoUri = null }: P
         keyboardShouldPersistTaps="handled"
         testID="catch-form-main"
       >
+        <PhotoPicker
+          photoUri={photoUri}
+          onPhotoSelected={selectPhoto}
+          disabled={isSaving}
+          error={errors.photo}
+        />
         <LabeledInput
           label={messages.form.speciesLabel}
           value={fields.species}
@@ -109,11 +181,16 @@ export function CatchFormScreen({ onSaved, onCancel, initialPhotoUri = null }: P
         <LabeledInput
           label={messages.form.placeLabel}
           value={fields.placeName}
-          onChangeText={(text) => updateField('placeName', text)}
+          onChangeText={updatePlace}
           error={errors.placeName}
           editable={!isSaving}
+          onFocus={focusPlace}
+          onBlur={() => setPlaceFocused(false)}
           testID="catch-form-place"
         />
+        {isPlaceFocused ? (
+          <SuggestionList suggestions={suggestions} onSelect={selectSuggestion} />
+        ) : null}
         <Pressable
           onPress={save}
           disabled={isSaving}
@@ -127,6 +204,19 @@ export function CatchFormScreen({ onSaved, onCancel, initialPhotoUri = null }: P
           </Text>
         </Pressable>
       </ScrollView>
+      <ConfirmDialog
+        visible={isDiscardDialogVisible}
+        title={messages.form.discardTitle}
+        confirmLabel={messages.form.discardConfirm}
+        cancelLabel={messages.form.cancel}
+        onConfirm={() => {
+          setDiscardDialogVisible(false);
+          onCancel();
+        }}
+        onCancel={() => setDiscardDialogVisible(false)}
+        destructive
+        testID="catch-form-discard-dialog"
+      />
     </View>
   );
 }

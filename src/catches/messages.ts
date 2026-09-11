@@ -31,6 +31,7 @@ export const messages = {
     photoPreviewAlt: '添付した写真',
     permissionDenied: '写真を添付するには許可が必要です',
     openSettings: '設定を開く',
+    photoPickFailed: '写真を取得できませんでした。もう一度お試しください',
     speciesLabel: '魚種',
     sizeLabel: 'サイズ（cm）',
     weightLabel: '重さ（g）',

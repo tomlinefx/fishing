@@ -134,3 +134,6 @@ yarn-error.*
 /ios
 /android
 # END Expo:gitignore
+
+# テストのカバレッジ出力（生成物）
+coverage/

@@ -1,12 +1,15 @@
-// S1 一覧画面（WF-2）。スケルトン段階: 文字カード・空の状態・（＋）・読み込み失敗と再読み込み。
+// S1 一覧画面（WF-2）: 縮小版の写真カード、絞り込みチップ（AND）、空の状態／該当なし、読み込み失敗と再読み込み。
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import type { Catch, FilterOptions } from '../log/catch';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { Catch, CatchFilter, FilterOptions } from '../log/catch';
 import { messages } from '../messages';
 import { CatchCard } from './CatchCard';
 import { useCatchLog } from './CatchLogContext';
 import { EmptyState } from './EmptyState';
 import { ErrorBanner } from './ErrorBanner';
+import { FilterChipBar } from './FilterChipBar';
+import { LoadingSkeleton } from './LoadingSkeleton';
+import { NoMatchState } from './NoMatchState';
 import { ScreenHeader } from './ScreenHeader';
 import { ADD_BUTTON_SIZE, colors, spacing } from './theme';
 
@@ -27,22 +30,36 @@ type LoadResult = {
 type Props = {
   readonly onAddPress: () => void;
   readonly onCatchPress: (id: string) => void;
-  /** 値が変わるたびに再取得する（画面に戻ってきたときに親が増やす） */
+  /** 値が変わるたびに再取得する（画面に戻ってきたときに親が増やす）。絞り込みは保持する。 */
   readonly reloadToken?: number;
   /** 表示用の現在時刻（テストで固定する） */
   readonly now?: () => Date;
 };
 
+function hasFilter(filter: CatchFilter): boolean {
+  return filter.species !== undefined || filter.placeName !== undefined;
+}
+
+/** 取得要求を識別する鍵（再読み込み・再試行・絞り込みのどれが変わっても新しい要求になる） */
+function buildLoadKey(reloadToken: number, attempt: number, filter: CatchFilter): string {
+  return `${reloadToken}:${attempt}:${filter.species ?? ''}:${filter.placeName ?? ''}`;
+}
+
 export function CatchListScreen({ onAddPress, onCatchPress, reloadToken = 0, now }: Props) {
   const log = useCatchLog();
+  const [filter, setFilter] = useState<CatchFilter>({});
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<LoadResult | null>(null);
-  const loadKey = `${reloadToken}:${attempt}`;
+  const loadKey = buildLoadKey(reloadToken, attempt, filter);
 
   useEffect(() => {
     let cancelled = false;
+    const requestKey = buildLoadKey(reloadToken, attempt, filter);
     (async () => {
-      const [listed, options] = await Promise.all([log.listCatches({}), log.getFilterOptions()]);
+      const [listed, options] = await Promise.all([
+        log.listCatches(filter),
+        log.getFilterOptions(),
+      ]);
       if (cancelled) {
         return;
       }
@@ -54,26 +71,50 @@ export function CatchListScreen({ onAddPress, onCatchPress, reloadToken = 0, now
       } else {
         outcome = { status: 'loaded', catches: listed.value, options: options.value };
       }
-      setResult({ key: loadKey, outcome });
+      setResult({ key: requestKey, outcome });
     })();
     return () => {
       cancelled = true;
     };
-  }, [log, loadKey]);
+  }, [log, reloadToken, attempt, filter]);
 
   const reload = useCallback(() => setAttempt((count) => count + 1), []);
+  const clearFilter = useCallback(() => setFilter({}), []);
+  const toggleSpecies = useCallback(
+    (value: string) =>
+      setFilter((current) => ({
+        ...current,
+        species: current.species === value ? undefined : value,
+      })),
+    [],
+  );
+  const togglePlace = useCallback(
+    (value: string) =>
+      setFilter((current) => ({
+        ...current,
+        placeName: current.placeName === value ? undefined : value,
+      })),
+    [],
+  );
+
   const currentTime = now ? now() : new Date();
   const outcome = result !== null && result.key === loadKey ? result.outcome : null;
+  // 読み込み中も直前の候補でチップを出しておく（チップの操作で画面が跳ねないように）
+  const lastOptions =
+    result?.outcome.status === 'loaded' ? result.outcome.options : { species: [], places: [] };
 
   return (
     <View style={styles.screen}>
       <ScreenHeader title={messages.list.title} />
+      <FilterChipBar
+        options={lastOptions}
+        selected={filter}
+        onToggleSpecies={toggleSpecies}
+        onTogglePlace={togglePlace}
+        onClear={clearFilter}
+      />
       <View style={styles.main} testID="catch-list-main">
-        {outcome === null ? (
-          <View style={styles.center} testID="catch-list-loading">
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        ) : null}
+        {outcome === null ? <LoadingSkeleton /> : null}
         {outcome?.status === 'failed' ? (
           <ErrorBanner
             message={outcome.reason}
@@ -83,7 +124,11 @@ export function CatchListScreen({ onAddPress, onCatchPress, reloadToken = 0, now
           />
         ) : null}
         {outcome?.status === 'loaded' && outcome.catches.length === 0 ? (
-          <EmptyState onAddPress={onAddPress} />
+          hasFilter(filter) ? (
+            <NoMatchState onClear={clearFilter} />
+          ) : (
+            <EmptyState onAddPress={onAddPress} />
+          )
         ) : null}
         {outcome?.status === 'loaded' && outcome.catches.length > 0 ? (
           <FlatList
@@ -117,11 +162,6 @@ const styles = StyleSheet.create({
   },
   main: {
     flex: 1,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   listContent: {
     paddingTop: spacing.md,
