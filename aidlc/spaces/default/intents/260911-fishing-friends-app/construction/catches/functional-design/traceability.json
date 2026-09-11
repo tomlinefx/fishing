@@ -1,0 +1,49 @@
+{
+  "stage": "functional-design",
+  "unit": "u1-catches",
+  "upstream_ids": [
+    "FR1", "FR1.1", "FR1.2", "FR1.3", "FR1.4", "FR1.5", "FR1.6", "FR1.7", "FR1.8",
+    "FR2", "FR2.1", "FR2.2", "FR2.3", "FR2.4", "FR2.5", "FR2.6", "FR2.7", "FR2.8",
+    "FR3", "FR3.1", "FR3.2", "FR3.3",
+    "FR4", "FR4.1", "FR4.2", "FR4.3",
+    "FR5", "FR5.1", "FR5.2", "FR5.3", "FR5.4", "FR5.5", "FR5.6"
+  ],
+  "coverage": [
+    { "id": "FR1", "status": "OK", "target": "BR1.1, BR1.2, BR1.3, BR1.4, BR1.5" },
+    { "id": "FR1.1", "status": "OK", "target": "BR1.1, BR4.3, BR5.1, BR5.2" },
+    { "id": "FR1.2", "status": "OK", "target": "BR1.1, BR5.1" },
+    { "id": "FR1.3", "status": "OK", "target": "BR1.2, BR1.3, BR1.4, BR6.1" },
+    { "id": "FR1.4", "status": "OK", "target": "BR1.2, BR1.3" },
+    { "id": "FR1.5", "status": "OK", "target": "BR1.5" },
+    { "id": "FR1.6", "status": "OK", "target": "BR4.1" },
+    { "id": "FR1.7", "status": "OK", "target": "BR4.2" },
+    { "id": "FR1.8", "status": "OK", "target": "BR7.1" },
+    { "id": "FR2", "status": "OK", "target": "BR2.1, BR2.2, BR2.3, BR2.4" },
+    { "id": "FR2.1", "status": "N/A", "target": "起動時の入口画面という画面構成の要件。業務ルールではなく functional-spec.md の WF-2 手順2 と frontend-components.md で扱う" },
+    { "id": "FR2.2", "status": "OK", "target": "BR2.1" },
+    { "id": "FR2.3", "status": "OK", "target": "BR7.2" },
+    { "id": "FR2.4", "status": "OK", "target": "BR2.4" },
+    { "id": "FR2.5", "status": "OK", "target": "BR2.2, BR2.3, BR2.4" },
+    { "id": "FR2.6", "status": "N/A", "target": "画面遷移の要件。業務ルールではなく functional-spec.md の WF-2 手順7 と frontend-components.md の Interaction Flows で扱う" },
+    { "id": "FR2.7", "status": "OK", "target": "BR4.6" },
+    { "id": "FR2.8", "status": "OK", "target": "BR7.2" },
+    { "id": "FR3", "status": "OK", "target": "BR3.1, BR3.2, BR7.2" },
+    { "id": "FR3.1", "status": "OK", "target": "BR7.2" },
+    { "id": "FR3.2", "status": "OK", "target": "BR3.1, BR3.2" },
+    { "id": "FR3.3", "status": "N/A", "target": "最小範囲では編集を提供しないという要件。ルールも画面もない（functional-spec.md の Catch のライフサイクルに明記）" },
+    { "id": "FR4", "status": "OK", "target": "BR4.3, BR4.4, BR4.5" },
+    { "id": "FR4.1", "status": "OK", "target": "BR4.3, BR4.5" },
+    { "id": "FR4.2", "status": "OK", "target": "BR1.6" },
+    { "id": "FR4.3", "status": "OK", "target": "BR4.4" },
+    { "id": "FR5", "status": "Deferred", "target": "次の釣行の後の機能群。unit-of-work.md の Boundaries で U1 の対象外と決定済み。次の取り組みで単位を切る" },
+    { "id": "FR5.1", "status": "Deferred", "target": "PU-2 グループと招待。U1 の対象外（unit-of-work.md Boundaries）" },
+    { "id": "FR5.2", "status": "Deferred", "target": "PU-3 タイムライン。U1 の対象外（unit-of-work.md Boundaries）" },
+    { "id": "FR5.3", "status": "Deferred", "target": "PU-3 クラウド同期。U1 の対象外（unit-of-work.md Boundaries）" },
+    { "id": "FR5.4", "status": "Deferred", "target": "PU-4 ポイントの地図。U1 の対象外（unit-of-work.md Boundaries）" },
+    { "id": "FR5.5", "status": "Deferred", "target": "PU-5 位置共有。U1 の対象外（unit-of-work.md Boundaries）" },
+    { "id": "FR5.6", "status": "Deferred", "target": "編集。U1 の対象外（unit-of-work.md Boundaries、FR3.3）" }
+  ],
+  "reverse": [
+    { "id": "BR4.5", "status": "N/A", "target": "NFR3（データ保全）から導いた起動時の技術的な制約。FR には対応しない" }
+  ]
+}
