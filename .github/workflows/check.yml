@@ -1,0 +1,78 @@
+name: check
+
+# 取り込み前（プルリクエスト）と、main への反映後の両方で走らせる。
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# 同じブランチで新しい実行が始まったら、古い実行は止める。
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: 整形・リント・型検査・テスト
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: リポジトリの取得
+        uses: actions/checkout@v4
+
+      - name: Node.js の準備
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: 依存の取得（ロックファイルどおり）
+        run: npm ci
+
+      # 手元の `npm run check` と同じ1コマンド。
+      # 整形チェック → リント → 型検査 → テスト＋カバレッジ。
+      # カバレッジの床（ロジック層・保存層それぞれ行 80%）は jest.config.js が強制する。
+      - name: 一括チェック
+        run: npm run check
+
+      - name: Android バンドルの生成確認
+        run: npx expo export --platform android --output-dir "${RUNNER_TEMP}/expo-export"
+
+  security:
+    name: 秘密情報の検出・依存の監査
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: リポジトリの取得（履歴込み）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 秘密情報を検出したら止める（project.md の固定ルール）。
+      - name: 秘密情報の検出
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Node.js の準備
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: 依存の取得（ロックファイルどおり）
+        run: npm ci
+
+      # 修正版のある Critical / High で止める（team.md の「緑」の定義）。
+      - name: 依存の脆弱性監査（Critical / High）
+        run: npm audit --audit-level=high
+
+      # Moderate 以下は警告として残す（止めない）。
+      - name: 依存の脆弱性監査（警告のみ）
+        if: always()
+        continue-on-error: true
+        run: npm audit
