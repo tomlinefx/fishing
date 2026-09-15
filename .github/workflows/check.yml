@@ -27,7 +27,8 @@ jobs:
       - name: Node.js の準備
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # better-sqlite3（保存層のテストで使用）は Node 22 以上が必要。手元と同じ版をファイルで固定する。
+          node-version-file: .node-version
           cache: npm
 
       - name: 依存の取得（ロックファイルどおり）
@@ -61,7 +62,8 @@ jobs:
       - name: Node.js の準備
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # better-sqlite3（保存層のテストで使用）は Node 22 以上が必要。手元と同じ版をファイルで固定する。
+          node-version-file: .node-version
           cache: npm
 
       - name: 依存の取得（ロックファイルどおり）
