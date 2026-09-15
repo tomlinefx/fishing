@@ -78,3 +78,6 @@
 - 期限が近いひとり開発では作業単位を増やさず1つにし、部品境界はモジュールとして保つ（往復を減らす価値が境界の明確さを上回る） (learned 2026-09-11) <!-- cid:260911-fishing-friends-app:units-generation:e36d7fd4b17f21dd175cfee7eac776b0acba5848ad14857b1c674fc882b6c188 -->
 - 受け入れ基準に AC 番号がない計画では、詳細設計の対応表は FR を上流 ID にし対応先を BRx.y にする。画面構成だけの要件は N/A で機能仕様を指す (learned 2026-09-11) <!-- cid:260911-fishing-friends-app:functional-design:425cad6d8af184362d32b724dd86fbdb1e711c0f444d4aa5f9856a679c7663ba -->
 - ロジックと保存を含む単位は、種類が ui でも entities.md と rules.md を補助資料として書き、データモデルとルールの源泉を機能仕様から分ける (learned 2026-09-11) <!-- cid:260911-fishing-friends-app:functional-design:afbb2c1d5800822525810a60f875121836e68c2b73b9c69ef2ddce849bcab3ce -->
+- 計画承認の安全装置が次の手順の取得コマンドまで止めたときは、その手順の取得を本人に直接（! 付きで）実行してもらって復帰する (learned 2026-09-12) <!-- cid:260911-fishing-friends-app:code-generation:6c3d63e70f0bfc6bef8bdd406526d0d0a13b0f11e115254d7444c20810a54158 -->
+- 後続の検証工程（性能検証・運用フェーズ）を省いた計画では、Test Strategy が Standard でも性能とセキュリティの手順書を作って Build and Test で測り切る (learned 2026-09-12) <!-- cid:260911-fishing-friends-app:build-and-test:fddc4171a01f8de43dcebdc2d963270c4dad4ec164535af20af44fb608e3fb1c -->
+- CI は手元と同じ1コマンドを呼ぶだけにし、閾値やテストの選び方は設定ファイル側に置いて CI に持たせない（二重管理と手元・CI の不一致を防ぐ） (learned 2026-09-12) <!-- cid:260911-fishing-friends-app:ci-pipeline:b8a42d61c608be553bc07fa90ed6cc5381676a6f48494f2f7df934230f0b086a -->

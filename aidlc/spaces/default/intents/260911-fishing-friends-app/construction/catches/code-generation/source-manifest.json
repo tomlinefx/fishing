@@ -1,0 +1,20 @@
+{
+  "stage": "code-generation",
+  "unit": "catches",
+  "version": 1,
+  "writes": [
+    { "path": "app/" },
+    { "path": "src/" },
+    { "path": "assets/" },
+    { "path": "package.json" },
+    { "path": "package-lock.json" },
+    { "path": "app.json" },
+    { "path": "tsconfig.json" },
+    { "path": "jest.config.js" },
+    { "path": "eslint.config.js" },
+    { "path": ".prettierrc" },
+    { "path": ".prettierignore" },
+    { "path": "README.md" },
+    { "path": ".gitignore" }
+  ]
+}

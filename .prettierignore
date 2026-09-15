@@ -1,0 +1,11 @@
+# 整形の対象外（生成物・ワークフローの記録・依存関係）
+node_modules/
+aidlc/
+.claude/
+.expo/
+coverage/
+android/
+ios/
+assets/
+package-lock.json
+.mcp.json
